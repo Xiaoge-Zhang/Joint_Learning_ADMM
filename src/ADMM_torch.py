@@ -114,49 +114,31 @@ def update_lambda(Y):
     new_lambda = Y + rho * (A @ x - b)
     Y.data = new_lambda
 
-def losses_test():
-    U, D, V, W, _, _, _ = convert_x_to_matricies(x)
-    real_tensor_val_x = real_tensor_x[tuple(x_test_indices.t())]
-    resembled_matrix_val_x = resemble_matrix(U, D, V)[tuple(x_test_indices.t())]
-
-    real_tensor_val_y = real_tensor_y[tuple(y_test_indices.t())]
-    resembled_matrix_val_y = resemble_matrix(U, D, W)[tuple(y_test_indices.t())]
-
-    return torch.norm(real_tensor_val_x - resembled_matrix_val_x, p=2).item(),\
-           torch.norm(real_tensor_val_y - resembled_matrix_val_y, p=2).item()
-
 
 def pprint(i, x, Y):
     loss = f(x)
     augmented_function_loss = lagrangian_function(x, Y)
-    x_test_loss, y_test_loss = losses_test()
 
     print(
-        f'\n{i+1}th iter, L:{augmented_function_loss:.2f}, f: {loss:.2f},'
-        f' x_test_loss: {x_test_loss:.2f}, y_test_loss: {y_test_loss:.2f}'
+        f'\n{i+1}th iter, L:{augmented_function_loss:.2f}, f: {loss:.2f}'
     )
     # print(f'x: {x}')
     print(f'multiplier: {Y}')
     print("constraints violation: ")
     print(A @ x - b)
-
-    return loss, augmented_function_loss, x_test_loss, y_test_loss
+    return loss, augmented_function_loss
 
 
 def solve(x, Y, iteration):
-    losses_df = pd.DataFrame(columns=["iteration", "loss", "augmented_lagrangian_loss", "x_test_loss", "y_test_loss"])
+    losses_df = pd.DataFrame(columns=["iteration", "loss", "augmented_lagrangian_loss"])
 
     for i in range(iteration):
         update_x(x, Y)
         update_lambda(Y)
-
-        # return and save the losses
-        loss, alf_loss, x_test_loss, y_test_loss = pprint(i, x, Y)
-        new_row = {"iteration": i, "loss": loss.item(), "augmented_lagrangian_loss": alf_loss.item(),
-                   "x_test_loss": x_test_loss, "y_test_loss": y_test_loss}
-
-        # save the result every 5 iterations (also saves the result the first iteration)
+        loss, alf_loss = pprint(i, x, Y)
+        new_row = {"iteration": i, "loss": loss.item(), "augmented_lagrangian_loss": alf_loss.item()}
         losses_df = pd.concat([losses_df, pd.DataFrame([new_row])], ignore_index=True)
+
         if i % 5 == 0 or i == (iteration - 1):
             # paths for saving the result and loss
             x_path = full_save_dir + ".pt"
@@ -285,11 +267,11 @@ if __name__ == '__main__':
     num_drug = 225
     num_disease = 19
     num_ddi = 4
-    si = [0, 1]
+    si = [3]
     num_si = len(si)
 
     # the root directery to save the results
-    base_dir = '../data/'
+    base_dir = 'useful_data/ddinter_plus_DCDB/'
 
     # the directory and file name we are going to save the losses and result
     save_name = ''
@@ -297,15 +279,15 @@ if __name__ == '__main__':
         save_name += str(index) + '_'
     save_file_ending = '_{}si'.format(save_name)
 
-    save_dir = '../output/'
+    save_dir = 'useful_data/torch_output/'
     full_save_dir = save_dir + save_name
 
     # load up the tensors
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=129)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=129)
 
     # load up the side information
     Sa = load_si(base_dir)
@@ -314,40 +296,71 @@ if __name__ == '__main__':
     # penalty parameter
     rho = torch.tensor(1, dtype=torch.float32).to(device)
 
-    if train:
-        # initial value of lagragian multiplier
-        Y = torch.zeros(1 + num_si, dtype=torch.float32).to(device)
+    # if train:
+    # initial value of lagragian multiplier
+    Y = torch.zeros(1 + num_si, dtype=torch.float32).to(device)
 
-        # initialize the A, x and b
-        A, x, b = generate_A_x_b()
+    # initialize the A, x and b
+    A, x, b = generate_A_x_b()
 
-        solve(x, Y, iteration=500)
-    else:
-        x = torch.load(full_save_dir + '.pt')
-        U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
-        pred_x = resemble_matrix(U, D, V)
-        pred_y = resemble_matrix(U, D, W)
+    solve(x, Y, iteration=500)
+    # else:
+    x = torch.load(full_save_dir + '.pt')
+    U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
+    pred_x = resemble_matrix(U, D, V)
+    pred_y = resemble_matrix(U, D, W)
+    # result of the testing columns
+    x_result, y_result = result_to_csv(real_tensor_x, real_tensor_y, pred_x, pred_y, x_test_indices, y_test_indices)
 
-        # result of the testing columns
-        x_result, y_result = result_to_csv(real_tensor_x, real_tensor_y, pred_x, pred_y, x_test_indices, y_test_indices)
+    # Ground truth of the testing cells
+    x_real = np.array(x_result['label'].tolist())
+    y_real = np.array(y_result['label'].tolist())
 
-        # ground truth of the testing cells
-        x_real = np.array(x_result['label'].tolist())
-        y_real = np.array(y_result['label'].tolist())
+    # Prediction values of the testing cells
+    x_pred = np.array(x_result['prediction'].tolist())
+    y_pred = np.array(y_result['prediction'].tolist())
 
-        # prediction value of the testing cells
-        x_pred = np.array(x_result['prediction'].tolist())
-        y_pred = np.array(y_result['prediction'].tolist())
+    # Return the values for graphing ROC curve
+    fpr_x, tpr_x, thresholds_x = metrics.roc_curve(x_real, x_pred)
+    fpr_y, tpr_y, thresholds_y = metrics.roc_curve(y_real, y_pred)
 
-        # return the values for graphing ROC curve
-        fpr_x, tpr_x, thresholds_x = metrics.roc_curve(x_real, x_pred)
-        fpr_y, tpr_y, thresholds_y = metrics.roc_curve(y_real, y_pred)
+    # Generate and plot the ROC curve
+    roc_auc1 = metrics.auc(fpr_x, tpr_x)
+    roc_auc2 = metrics.auc(fpr_y, tpr_y)
 
-        # generate and plot the curve
-        roc_auc1 = metrics.auc(fpr_x, tpr_x)
-        plt.plot(fpr_x, tpr_x, label="x tensor, auc=" + str(roc_auc1), c='red')
-        roc_auc2 = metrics.auc(fpr_y, tpr_y)
-        plt.plot(fpr_y, tpr_y, label="y_tensor, auc=" + str(roc_auc2), c='green')
-        plt.legend(loc=0)
+    # Print AUC values
+    print(f"AUC for x tensor: {roc_auc1}")
+    print(f"AUC for y tensor: {roc_auc2}")
 
-        plt.show()
+    # Plot ROC curve
+    plt.plot(fpr_x, tpr_x, label="x tensor, AUC=" + str(roc_auc1), c='red')
+    plt.plot(fpr_y, tpr_y, label="y tensor, AUC=" + str(roc_auc2), c='green')
+    plt.legend(loc=0)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.savefig('roc_auc.png')
+    plt.close()
+
+    # Compute precision-recall and AUPR
+    precision_x, recall_x, thresholds_pr_x = metrics.precision_recall_curve(x_real, x_pred)
+    precision_y, recall_y, thresholds_pr_y = metrics.precision_recall_curve(y_real, y_pred)
+
+    # Calculate AUPR for both x and y
+    aupr_x = metrics.auc(recall_x, precision_x)
+    aupr_y = metrics.auc(recall_y, precision_y)
+
+    # Print AUPR values
+    print(f"AUPR for x tensor: {aupr_x}")
+    print(f"AUPR for y tensor: {aupr_y}")
+
+    # Plot Precision-Recall curve for x and y
+    plt.figure()
+    plt.plot(recall_x, precision_x, label="x tensor, AUPR=" + str(aupr_x), c='red')
+    plt.plot(recall_y, precision_y, label="y tensor, AUPR=" + str(aupr_y), c='green')
+    plt.legend(loc=0)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.savefig('precision_recall_curve.png')
+    plt.close()
