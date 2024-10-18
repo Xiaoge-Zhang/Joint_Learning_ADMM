@@ -1,6 +1,6 @@
 import numpy as np
 import tensorly as tl
-from tensorly.decomposition import constrained_parafac
+from tensorly.decomposition import tucker
 import matplotlib.pyplot as plt
 import pickle
 import os
@@ -101,7 +101,7 @@ def result_to_csv(real_x, real_y, pred_x, pred_y, x_test_indices, y_test_indices
 
 
 if __name__ == '__main__':
-    base_dir = '../useful_data/ddinter_plus_DCDB/'
+    base_dir = '../data/'
 
     np.set_printoptions(precision=2)
     # load up the tensors
@@ -116,8 +116,8 @@ if __name__ == '__main__':
     tensor_y = tl.tensor(tensor_y)
     rank = 3
 
-    _, x_factors = constrained_parafac(tensor_x, rank=rank, unimodality=True)
-    _, y_factors = constrained_parafac(tensor_y, rank=rank, unimodality=True)
+    _, x_factors = tucker(tensor=tensor_x, rank=rank)
+    _, y_factors = tucker(tensor=tensor_y, rank=rank)
 
     pred_x = resemble_matrix(x_factors[0], x_factors[1], x_factors[2])
     pred_y = resemble_matrix(y_factors[0], y_factors[1], y_factors[2])
@@ -125,23 +125,55 @@ if __name__ == '__main__':
     # result of the testing columns
     x_result, y_result = result_to_csv(real_tensor_x, real_tensor_y, pred_x, pred_y, x_test_indices, y_test_indices)
 
-    # ground truth of the testing cells
+    # Ground truth of the testing cells
     x_real = np.array(x_result['label'].tolist())
     y_real = np.array(y_result['label'].tolist())
 
-    # prediction value of the testing cells
+    # Prediction values of the testing cells
     x_pred = np.array(x_result['prediction'].tolist())
     y_pred = np.array(y_result['prediction'].tolist())
 
-    # return the values for graphing ROC curve
+    # Return the values for graphing ROC curve
     fpr_x, tpr_x, thresholds_x = metrics.roc_curve(x_real, x_pred)
     fpr_y, tpr_y, thresholds_y = metrics.roc_curve(y_real, y_pred)
 
-    # generate and plot the curve
+    # Generate and plot the ROC curve
     roc_auc1 = metrics.auc(fpr_x, tpr_x)
-    plt.plot(fpr_x, tpr_x, label="x tensor, auc=" + str(roc_auc1), c='red')
     roc_auc2 = metrics.auc(fpr_y, tpr_y)
-    plt.plot(fpr_y, tpr_y, label="y_tensor, auc=" + str(roc_auc2), c='green')
-    plt.legend(loc=0)
 
+    # Print AUC values
+    print(f"AUC for x tensor: {roc_auc1}")
+    print(f"AUC for y tensor: {roc_auc2}")
+
+    # Plot ROC curve
+    plt.plot(fpr_x, tpr_x, label="x tensor, AUC=" + str(roc_auc1), c='red')
+    plt.plot(fpr_y, tpr_y, label="y tensor, AUC=" + str(roc_auc2), c='green')
+    plt.legend(loc=0)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    # plt.savefig('roc_auc.png')
+    plt.show()
+
+    # Compute precision-recall and AUPR
+    precision_x, recall_x, thresholds_pr_x = metrics.precision_recall_curve(x_real, x_pred)
+    precision_y, recall_y, thresholds_pr_y = metrics.precision_recall_curve(y_real, y_pred)
+
+    # Calculate AUPR for both x and y
+    aupr_x = metrics.auc(recall_x, precision_x)
+    aupr_y = metrics.auc(recall_y, precision_y)
+
+    # Print AUPR values
+    print(f"AUPR for x tensor: {aupr_x}")
+    print(f"AUPR for y tensor: {aupr_y}")
+
+    # Plot Precision-Recall curve for x and y
+    plt.figure()
+    plt.plot(recall_x, precision_x, label="x tensor, AUPR=" + str(aupr_x), c='red')
+    plt.plot(recall_y, precision_y, label="y tensor, AUPR=" + str(aupr_y), c='green')
+    plt.legend(loc=0)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    # plt.savefig('precision_recall_curve.png')
     plt.show()
