@@ -301,12 +301,12 @@ if __name__ == '__main__':
     base_dir = '../data/'
 
     # the directory and file name we are going to save the losses and result
-    save_name = '../output/'
+    save_name = ''
     for index in si:
         save_name += str(index) + '_'
     save_file_ending = '_{}si'.format(save_name)
 
-    save_dir = '../useful_data/torch_output/'
+    save_dir = '../output/'
     full_save_dir = save_dir + save_name
 
     # load up the tensors
