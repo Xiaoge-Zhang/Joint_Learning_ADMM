@@ -101,15 +101,33 @@ def generate_A_x_b():
 
 def update_x(x, Y):
     """ update x with gradient descent """
+    # decide the alternating two parts: matrix U,D,V,W, and C(i) matrices and U(i) matrices
+
+    # decide the total number of components of U, D, V, W
     UDVW_length = num_drug * rank * 2 + num_disease * rank + num_ddi * rank
+
+    # components that need to calculate partial derivative
     x_UDVW = x[:UDVW_length].clone().detach().requires_grad_(True)
+
+    # temp x where we input it into lagragian function
     x_UDVW_temp = x.clone().detach()
+
+    # change the value so this part can calculate gradient
     x_UDVW_temp[:UDVW_length] = x_UDVW
+
+    # function value
     UDVW_lagrangian = lagrangian_function(x_UDVW_temp, Y)
+
+    # calculate gradient
     grad_x_UDVW = torch.autograd.grad(UDVW_lagrangian, x_UDVW, create_graph=True)[0]
+
+    # updated x values for UDVW
     x_UDVW_new = x_UDVW_temp[:UDVW_length] - lr * grad_x_UDVW
+
+    # update x
     x.data[:UDVW_length] = torch.clamp(x_UDVW_new, min=0)
 
+    # repeat the prvious steps, but for the x values of Ci and Ui
     x_CiUi = x[UDVW_length:].clone().detach().requires_grad_(True)
     x_CiUi_temp = x.clone().detach()
     x_CiUi_temp[UDVW_length:] = x_CiUi
@@ -319,7 +337,7 @@ if __name__ == '__main__':
     # load up the side information
     Sa = load_si(base_dir)
     # learning rate
-    lr = torch.tensor(0.0003, dtype=torch.float32).to(device)
+    lr = torch.tensor(0.0008, dtype=torch.float32).to(device)
     # penalty parameter
     rho = torch.tensor(1, dtype=torch.float32).to(device)
 
@@ -330,7 +348,7 @@ if __name__ == '__main__':
         # initialize the A, x and b
         A, x, b = generate_A_x_b()
 
-        solve(x, Y, iteration=1000)
+        solve(x, Y, iteration=1300)
     else:
         x = torch.load(full_save_dir + '.pt')
         U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
