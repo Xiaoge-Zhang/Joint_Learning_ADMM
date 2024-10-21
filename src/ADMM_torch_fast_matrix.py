@@ -98,43 +98,61 @@ def generate_A_x_b():
 
     return A, x, b
 
+def update_partial_x(x, Y, start_index, end_index):
+    # components that need to calculate partial derivative
+    x_partial = x[start_index:end_index].clone().detach().requires_grad_(True)
+
+    # temp x where we input it into lagragian function
+    x_temp = x.clone().detach()
+
+    # change the value so this part can calculate gradient
+    x_temp[start_index:end_index] = x_partial
+
+    # function value
+    UDVW_lagrangian = lagrangian_function(x_temp, Y)
+
+    # calculate gradient
+    grad_x_UDVW = torch.autograd.grad(UDVW_lagrangian, x_partial, create_graph=True)[0]
+
+    # updated x values for UDVW
+    x_temp_new = x_temp[start_index:end_index] - lr * grad_x_UDVW
+
+    # update x
+    x.data[start_index:end_index] = torch.clamp(x_temp_new, min=0)
 
 def update_x(x, Y):
     """ update x with gradient descent """
-    # decide the alternating two parts: matrix U,D,V,W, and C(i) matrices and U(i) matrices
+    # get all starting and ending index for U, D, V, W
+    U_start_idx = 0
+    U_end_idx = rank * num_drug
 
-    # decide the total number of components of U, D, V, W
-    UDVW_length = num_drug * rank * 2 + num_disease * rank + num_ddi * rank
+    D_start_idx = U_end_idx
+    D_end_idx = U_end_idx + rank * num_drug
 
-    # components that need to calculate partial derivative
-    x_UDVW = x[:UDVW_length].clone().detach().requires_grad_(True)
+    V_start_idx = D_end_idx
+    V_end_idx = D_end_idx + rank * num_disease
 
-    # temp x where we input it into lagragian function
-    x_UDVW_temp = x.clone().detach()
+    W_start_idx = V_end_idx
+    W_end_idx = V_end_idx + rank * num_ddi
 
-    # change the value so this part can calculate gradient
-    x_UDVW_temp[:UDVW_length] = x_UDVW
+    #update U, D, V, W
+    update_partial_x(x, Y, U_start_idx, U_end_idx)
+    update_partial_x(x, Y, D_start_idx, D_end_idx)
+    update_partial_x(x, Y, V_start_idx, V_end_idx)
+    update_partial_x(x, Y, W_start_idx, W_end_idx)
 
-    # function value
-    UDVW_lagrangian = lagrangian_function(x_UDVW_temp, Y)
+    base_si_length = 2 * rank * num_drug
+    for i in range(num_si):
+        #determine the start and end index for Ci and Ui
+        Ci_start_index = W_end_idx + i * base_si_length
+        Ci_end_index = W_end_idx + i * base_si_length + rank * num_drug
 
-    # calculate gradient
-    grad_x_UDVW = torch.autograd.grad(UDVW_lagrangian, x_UDVW, create_graph=True)[0]
+        Ui_start_index = Ci_end_index
+        Ui_end_index = Ci_end_index + rank * num_drug
 
-    # updated x values for UDVW
-    x_UDVW_new = x_UDVW_temp[:UDVW_length] - lr * grad_x_UDVW
-
-    # update x
-    x.data[:UDVW_length] = torch.clamp(x_UDVW_new, min=0)
-
-    # repeat the prvious steps, but for the x values of Ci and Ui
-    x_CiUi = x[UDVW_length:].clone().detach().requires_grad_(True)
-    x_CiUi_temp = x.clone().detach()
-    x_CiUi_temp[UDVW_length:] = x_CiUi
-    CiUi_lagrangian = lagrangian_function(x_CiUi_temp, Y)
-    grad_x_CiUi = torch.autograd.grad(CiUi_lagrangian, x_CiUi, create_graph=True)[0]
-    x_CiUi_new = x_CiUi_temp[UDVW_length:] - lr * grad_x_CiUi
-    x.data[UDVW_length:] = torch.clamp(x_CiUi_new, min=0)
+        # update Ci and Ui
+        update_partial_x(x, Y, Ci_start_index, Ci_end_index)
+        update_partial_x(x, Y, Ui_start_index, Ui_end_index)
 
 
 def update_lambda(Y):
@@ -308,7 +326,7 @@ if __name__ == '__main__':
     train = False
 
     # basic parameter of input data
-    rank = 5
+    rank = 3
     num_drug = 225
     num_disease = 19
     num_ddi = 4
