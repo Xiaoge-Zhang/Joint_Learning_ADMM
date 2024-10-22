@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import random
 import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -188,7 +189,7 @@ def calculate_Qi(Ui):
     return result.to(device)
 
 
-def generate_test_tensor(tensor, test_ratio, rnd_seed):
+def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate):
     # Get the indices of `1` and `0` values
     one_indices = (tensor == 1).nonzero(as_tuple=False)
     zero_indices = (tensor == 0).nonzero(as_tuple=False)
@@ -200,6 +201,7 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed):
     # Create a generator for reproducibility (optional)
     gen = torch.Generator()
     gen.manual_seed(rnd_seed)
+
 
     # Randomly select indices of `1` values
     selected_one_indices = one_indices[torch.randperm(one_indices.size(0), generator=gen)[:num_ones_to_replace]]
@@ -214,6 +216,22 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed):
 
     # Combine the selected indices for the output
     selected_indices = torch.cat((selected_one_indices, selected_zero_indices), dim=0)
+
+    if missing_rate > 0:
+        # get all possible indices
+        dim1, dim2, dim3 = tensor.shape
+        all_indices = torch.cartesian_prod(torch.arange(dim1), torch.arange(dim2), torch.arange(dim3))
+        all_indices_set = set(map(tuple, all_indices.tolist()))
+        index_x_set = set(map(tuple, selected_indices.tolist()))
+
+        # exclude the test entries
+        remaining_indices_ls = list(all_indices_set - index_x_set)
+        # select missing rate of thhe remaining indices
+        random.seed(rnd_seed)
+        selected_random_indices = random.sample(list(remaining_indices_ls), int(missing_rate * len(remaining_indices_ls)))
+        random.seed()
+        # turn them into 0
+        modified_tensor[tuple(torch.tensor(selected_random_indices).t())] = 0
 
     return modified_tensor, selected_indices
 
@@ -271,7 +289,8 @@ if __name__ == '__main__':
     num_si = len(si)
 
     # the root directery to save the results
-    base_dir = 'useful_data/ddinter_plus_DCDB/'
+    # base_dir = 'useful_data/ddinter_plus_DCDB/'
+    base_dir = '../data/'
 
     # the directory and file name we are going to save the losses and result
     save_name = ''
@@ -279,15 +298,16 @@ if __name__ == '__main__':
         save_name += str(index) + '_'
     save_file_ending = '_{}si'.format(save_name)
 
-    save_dir = 'useful_data/torch_output/'
+    # save_dir = 'useful_data/torch_output/'
+    save_dir = '../output/'
     full_save_dir = save_dir + save_name
 
     # load up the tensors
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=129)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=129)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=129, missing_rate=0.2)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=129, missing_rate=0.2)
 
     # load up the side information
     Sa = load_si(base_dir)
