@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import tensorly as tl
 from tensorly.decomposition import tucker
@@ -42,7 +44,7 @@ def load_tensor_x_y(base_dir):
     return tensor_x, tensor_y
 
 
-def generate_test_tensor(tensor, test_ratio, rnd_seed):
+def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0):
     # Get the indices of `1` and `0` values
     one_indices = list(zip(*np.where(tensor == 1)))
     zero_indices = list(zip(*np.where(tensor == 0)))
@@ -70,6 +72,23 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed):
 
     # Combine the selected indices for the output
     selected_indices = tuple(np.concatenate((idx1, idx0)) for idx1, idx0 in zip(selected_one_indices, selected_zero_indices))
+
+    if missing_rate > 0.0:
+        test_selected_indicies = list(zip(*selected_indices))
+
+        # get all possible index
+        indices = np.indices(tensor.shape)
+        all_indices = [tuple(idx) for idx in np.vstack(map(np.ravel, indices)).T]
+
+        # cut out the test entries
+        possible_indices = list(set(all_indices)-set(test_selected_indicies))
+
+        # select missing rate of possible entries
+        random.seed(rnd_seed)
+        cutted_indices = random.sample(possible_indices, int(missing_rate * len(possible_indices)))
+
+        #turn them into 0
+        modified_tensor[tuple(zip(*cutted_indices))] = 0
 
     return modified_tensor, selected_indices
 
@@ -108,8 +127,8 @@ if __name__ == '__main__':
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
 
     # tensor generation
     tensor_x = tl.tensor(tensor_x)

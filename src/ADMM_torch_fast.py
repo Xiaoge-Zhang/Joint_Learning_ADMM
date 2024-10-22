@@ -263,7 +263,7 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate):
     # Combine the selected indices for the output
     selected_indices = torch.cat((selected_one_indices, selected_zero_indices), dim=0)
 
-    if missing_rate > 0:
+    if missing_rate > 0.0:
         # get all possible indices
         dim1, dim2, dim3 = tensor.shape
         all_indices = torch.cartesian_prod(torch.arange(dim1), torch.arange(dim2), torch.arange(dim3))
