@@ -44,7 +44,7 @@ def load_tensor_x_y(base_dir):
     return tensor_x, tensor_y
 
 
-def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0):
+def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
     # Get the indices of `1` and `0` values
     one_indices = list(zip(*np.where(tensor == 1)))
     zero_indices = list(zip(*np.where(tensor == 0)))
