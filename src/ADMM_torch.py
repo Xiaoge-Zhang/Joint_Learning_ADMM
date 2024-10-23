@@ -189,7 +189,7 @@ def calculate_Qi(Ui):
     return result.to(device)
 
 
-def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate):
+def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
     # Get the indices of `1` and `0` values
     one_indices = (tensor == 1).nonzero(as_tuple=False)
     zero_indices = (tensor == 0).nonzero(as_tuple=False)
@@ -204,7 +204,9 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate):
 
 
     # Randomly select indices of `1` values
-    selected_one_indices = one_indices[torch.randperm(one_indices.size(0), generator=gen)[:num_ones_to_replace]]
+    randomized_one_indicies = one_indices[torch.randperm(one_indices.size(0), generator=gen)]
+    selected_one_indices = randomized_one_indicies[:num_ones_to_replace]
+
     # Randomly select indices of `0` values
     selected_zero_indices = zero_indices[torch.randperm(zero_indices.size(0), generator=gen)[:num_zeros_to_replace]]
 
@@ -214,24 +216,14 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate):
     modified_tensor[tuple(selected_one_indices.t())] = 0
     modified_tensor[tuple(selected_zero_indices.t())] = 0
 
+    # select values to mask if missing rate is bigger than 0
+    if missing_rate > 0.0:
+        num_ones_to_mask = int(missing_rate * one_indices.size(0))
+        masked_one_indicies = randomized_one_indicies[num_ones_to_replace:num_ones_to_replace + num_ones_to_mask]
+        modified_tensor[tuple(masked_one_indicies.t())] = 0
+
     # Combine the selected indices for the output
     selected_indices = torch.cat((selected_one_indices, selected_zero_indices), dim=0)
-
-    if missing_rate > 0.0:
-        # get all possible indices
-        dim1, dim2, dim3 = tensor.shape
-        all_indices = torch.cartesian_prod(torch.arange(dim1), torch.arange(dim2), torch.arange(dim3))
-        all_indices_set = set(map(tuple, all_indices.tolist()))
-        index_x_set = set(map(tuple, selected_indices.tolist()))
-
-        # exclude the test entries
-        remaining_indices_ls = list(all_indices_set - index_x_set)
-        # select missing rate of thhe remaining indices
-        random.seed(rnd_seed)
-        selected_random_indices = random.sample(list(remaining_indices_ls), int(missing_rate * len(remaining_indices_ls)))
-        random.seed()
-        # turn them into 0
-        modified_tensor[tuple(torch.tensor(selected_random_indices).t())] = 0
 
     return modified_tensor, selected_indices
 

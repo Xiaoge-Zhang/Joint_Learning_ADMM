@@ -70,25 +70,14 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
     modified_tensor[selected_one_indices] = 0
     modified_tensor[selected_zero_indices] = 0
 
+    # select values to mask if missing rate is bigger than 0
+    if missing_rate > 0.0:
+        num_ones_to_mask = int(missing_rate * len(one_indices))
+        masked_one_indicies = [one_indices[i] for i in shuffled_one_indices[num_ones_to_replace:num_ones_to_replace + num_ones_to_mask]]
+        modified_tensor[tuple(zip(*masked_one_indicies))] = 0
+
     # Combine the selected indices for the output
     selected_indices = tuple(np.concatenate((idx1, idx0)) for idx1, idx0 in zip(selected_one_indices, selected_zero_indices))
-
-    if missing_rate > 0.0:
-        test_selected_indicies = list(zip(*selected_indices))
-
-        # get all possible index
-        indices = np.indices(tensor.shape)
-        all_indices = [tuple(idx) for idx in np.vstack(map(np.ravel, indices)).T]
-
-        # cut out the test entries
-        possible_indices = list(set(all_indices)-set(test_selected_indicies))
-
-        # select missing rate of possible entries
-        random.seed(rnd_seed)
-        cutted_indices = random.sample(possible_indices, int(missing_rate * len(possible_indices)))
-
-        #turn them into 0
-        modified_tensor[tuple(zip(*cutted_indices))] = 0
 
     return modified_tensor, selected_indices
 
