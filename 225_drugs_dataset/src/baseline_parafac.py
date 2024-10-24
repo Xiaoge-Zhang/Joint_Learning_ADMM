@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 import tensorly as tl
-from tensorly.decomposition import tucker
+from tensorly.decomposition import tucker, non_negative_parafac_hals
 import matplotlib.pyplot as plt
 import pickle
 import os
@@ -124,8 +124,8 @@ if __name__ == '__main__':
     tensor_y = tl.tensor(tensor_y)
     rank = 3
 
-    _, x_factors = tucker(tensor=tensor_x, rank=rank)
-    _, y_factors = tucker(tensor=tensor_y, rank=rank)
+    _, x_factors = non_negative_parafac_hals(tensor=tensor_x, rank=rank)
+    _, y_factors = non_negative_parafac_hals(tensor=tensor_y, rank=rank)
 
     pred_x = resemble_matrix(x_factors[0], x_factors[1], x_factors[2])
     pred_y = resemble_matrix(y_factors[0], y_factors[1], y_factors[2])
