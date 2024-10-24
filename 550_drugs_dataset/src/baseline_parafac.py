@@ -72,7 +72,7 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
 
     # select values to mask if missing rate is bigger than 0
     if missing_rate > 0.0:
-        num_ones_to_mask = int(missing_rate * len(one_indices))
+        num_ones_to_mask = int(missing_rate * (len(one_indices) - num_ones_to_replace*2))
         masked_one_indicies = [one_indices[i] for i in shuffled_one_indices[num_ones_to_replace:num_ones_to_replace + num_ones_to_mask]]
         modified_tensor[tuple(zip(*masked_one_indicies))] = 0
 
