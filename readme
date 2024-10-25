@@ -34,7 +34,7 @@ How to Run:
 ADMM_torch_fast_matrix: the original implementation in paper
 ADMM_torch_fast: faster speed, worse prediciton performance
 ADMM_torch: slower speed, better predicition performance
-
+ADMM_torch_no_si: version that has a loss function that has no involvement with the side information.
 2.simply adjust the base_dir and save_dir and run the corresponding program
 
 3. data folder contains the tensors and side information, output folder stores output.
