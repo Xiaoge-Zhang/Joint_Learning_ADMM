@@ -1,0 +1,24 @@
+This is the python implementation for the paper Joint Learning of Drug-Drug Combination and Drug-
+Drug Interaction via Coupled Tensor-Tensor Factorization. (Under review for RECOMB 2025)
+
+Abstract:
+Targeted drug therapies are one of the promising approaches to treat
+complex diseases and in such treatments, combinational drug therapies are adopted
+to overcome drug resistance. However, in practice, unexpected drug interac-
+tions may make drugs less effective, or even cause side effects. In this work,
+we propose a novel approach for joint learning of drug-drug combination ther-
+apies and drug-drug interactions using coupled tensor-tensor factorization. The
+proposed method models drug combinations and potential adverse drug inter-
+actions by encoding drug-drug-disease relationships and drug-drug interaction
+side effects into three-way tensors. To overcome the challenge of recovering
+incomplete and sparse tensors, our model utilizes auxiliary data such as drug
+similarities and disease profiles within a multi-view learning framework. For
+optimization, our model utilizes the Alternating Direction Method of Multipli-
+ers (ADMM) to ensure convergence while managing non-negativity constraints.
+To validate our approach, we compile a comprehensive dataset from multiple
+data sources including DrugBank, PubChem, and DCDB. By leveraging drug
+similarities from their chemical structures, side effects of individual drugs, drug
+target information and drug inhibition information on cancer cell lines, the model
+demonstrates robust and competitive results in joint prediction of drug-drug com-
+binational therapies and adverse drug-drug interactions.
+
