@@ -46,7 +46,7 @@ def side_info_opt_func_val(Sa, Ci, Ui, Qi, U):
 
     result = 0.0
     for i in range(len(Sa)):
-        temp = torch.norm(Sa[i] - Ci[i] @ Ui[i].t(), p=2) + torch.norm(Ci[i] @ Qi[i] - U, p=2)
+        temp = si_weight[i] * torch.norm(Sa[i] - Ci[i] @ Ui[i].t(), p=2) + torch.norm(Ci[i] @ Qi[i] - U, p=2)
         result += temp
 
     return result
@@ -274,10 +274,11 @@ if __name__ == '__main__':
 
     # basic parameter of input data
     rank = 3
-    num_drug = 225
-    num_disease = 19
-    num_ddi = 4
-    si = [3]
+    num_drug = 551
+    num_disease = 77
+    num_ddi = 65
+    si = [0, 1, 2, 3, 4]
+    si_weight = [1, 1, 1, 1, 1]
     num_si = len(si)
 
     # the root directery to save the results

@@ -22,3 +22,19 @@ target information and drug inhibition information on cancer cell lines, the mod
 demonstrates robust and competitive results in joint prediction of drug-drug com-
 binational therapies and adverse drug-drug interactions.
 
+package requirement:
+numpy                     1.24.3
+torch                     1.11.0+cu115
+pandas                    2.2.2
+matplotlib                3.8.4
+scikit-learn              1.4.2
+
+How to Run:
+1.We have three versions of the program:
+ADMM_torch_fast_matrix: the original implementation in paper
+ADMM_torch_fast: faster speed, worse prediciton performance
+ADMM_torch: slower speed, better predicition performance
+
+2.simply adjust the base_dir and save_dir and run the corresponding program
+
+3. data folder contains the tensors and side information, output folder stores output.

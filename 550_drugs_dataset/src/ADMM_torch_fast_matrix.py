@@ -362,8 +362,8 @@ if __name__ == '__main__':
     print(real_tensor_y.shape)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123, missing_rate=0)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123, missing_rate=0)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
 
     # load up the side information
     Sa = load_si(base_dir)
