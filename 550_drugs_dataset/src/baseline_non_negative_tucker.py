@@ -60,7 +60,7 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
 
 
     # Randomly select indices of `0` values
-    shuffled_zero_indices = np.default_rng(seed=rnd_seed).permutation(len(zero_indices))
+    shuffled_zero_indices = np.random.default_rng(seed=rnd_seed).permutation(len(zero_indices))
     selected_zero_indices = [zero_indices[i] for i in shuffled_zero_indices[:num_zeros_to_replace]]
     selected_zero_indices = tuple(zip(*selected_zero_indices))
 
@@ -113,7 +113,7 @@ def result_to_csv(real_x, real_y, pred_x, pred_y, x_test_indices, y_test_indices
 
 
 if __name__ == '__main__':
-    rnd_seed = 125
+    rnd_seed = 127
     save_name = 'non_negative_tucker'
     base_dir = '../data/'
     output_dir = '../output/'

@@ -27,34 +27,27 @@ def calculate_metrics(test_files):
 
     return np.array(aucs), np.array(auprs), fpr_list, tpr_list, precision_list, recall_list
 
-def plot_combined_metrics_with_std(aucs_x, auprs_x, fpr_list_x, tpr_list_x, precision_list_x, recall_list_x,
-                                   aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y):
+
+def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_list, recall_list,
+                                   color, model_name, tensor_name):
     # Plot ROC curves for both x and y datasets
     plt.subplot(1, 2, 1)
     mean_fpr = np.linspace(0, 1, 100)
 
     # Interpolate and calculate mean/std for x
-    tpr_interp_x = [np.interp(mean_fpr, fpr, tpr) for fpr, tpr in zip(fpr_list_x, tpr_list_x)]
-    mean_tpr_x = np.mean(tpr_interp_x, axis=0)
-    std_tpr_x = np.std(tpr_interp_x, axis=0)
+    tpr_interp = [np.interp(mean_fpr, fpr, tpr) for fpr, tpr in zip(fpr_list, tpr_list)]
+    mean_tpr = np.mean(tpr_interp, axis=0)
+    std_tpr = np.std(tpr_interp, axis=0)
 
-    # Interpolate and calculate mean/std for y
-    tpr_interp_y = [np.interp(mean_fpr, fpr, tpr) for fpr, tpr in zip(fpr_list_y, tpr_list_y)]
-    mean_tpr_y = np.mean(tpr_interp_y, axis=0)
-    std_tpr_y = np.std(tpr_interp_y, axis=0)
+    # Plot ROC
+    plt.plot(mean_fpr, mean_tpr, label='AUC = {} for {}'.format(np.round(np.mean(aucs), 4), model_name), color= color)
+    # plt.fill_between(mean_fpr, mean_tpr - std_tpr, mean_tpr + std_tpr, alpha=0.2, color= color)
 
-    # Plot ROC for x
-    plt.plot(mean_fpr, mean_tpr_x, label=f'Mean ROC X (AUC = {np.mean(aucs_x):.4f})', color='blue')
-    plt.fill_between(mean_fpr, mean_tpr_x - std_tpr_x, mean_tpr_x + std_tpr_x, alpha=0.2, color='blue')
-
-    # Plot ROC for y
-    plt.plot(mean_fpr, mean_tpr_y, label=f'Mean ROC Y (AUC = {np.mean(aucs_y):.4f})', color='orange')
-    plt.fill_between(mean_fpr, mean_tpr_y - std_tpr_y, mean_tpr_y + std_tpr_y, alpha=0.2, color='orange')
     plt.grid()
-    plt.title('ROC Curves with Std', fontsize=font_size)
+    plt.title('ROC Curves with Std of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('False Positive Rate', fontsize=font_size)
     plt.ylabel('True Positive Rate', fontsize=font_size)
-    plt.legend(fontsize=24)
+    plt.legend(fontsize=12)
 
     # Plot Precision-Recall curves for both x and y datasets
     plt.subplot(1, 2, 2)
@@ -62,28 +55,19 @@ def plot_combined_metrics_with_std(aucs_x, auprs_x, fpr_list_x, tpr_list_x, prec
     # Define a common recall grid for interpolation
     mean_recall = np.linspace(0, 1, 100)
 
-    # Interpolate precision values onto the common recall grid for X dataset
-    precision_interp_x = [np.interp(mean_recall, np.flip(recall), np.flip(precision)) for recall, precision in zip(recall_list_x, precision_list_x)]
-    mean_precision_x = np.mean(precision_interp_x, axis=0)
-    std_precision_x = np.std(precision_interp_x, axis=0)
+    # Interpolate precision values onto the common recall grid
+    precision_interp = [np.interp(mean_recall, np.flip(recall), np.flip(precision)) for recall, precision in zip(recall_list, precision_list)]
+    mean_precision = np.mean(precision_interp, axis=0)
+    std_precision = np.std(precision_interp, axis=0)
 
-    # Plot Precision-Recall for X dataset with mean and std
-    plt.plot(mean_recall, mean_precision_x, label=f'Mean Precision-Recall X (AUPR = {np.mean(auprs_x):.4f})', color='blue')
-    plt.fill_between(mean_recall, mean_precision_x - std_precision_x, mean_precision_x + std_precision_x, color='blue', alpha=0.2)
+    # Plot Precision-Recall
+    plt.plot(mean_recall, mean_precision, label='AUPR = {} for {}'.format(np.round(np.mean(auprs), 4), model_name), color=color)
+    # plt.fill_between(mean_recall, mean_precision - std_precision, mean_precision + std_precision, color=color, alpha=0.2)
 
-    # Interpolate precision values onto the common recall grid for Y dataset
-    precision_interp_y = [np.interp(mean_recall, np.flip(recall), np.flip(precision)) for recall, precision in zip(recall_list_y, precision_list_y)]
-    mean_precision_y = np.mean(precision_interp_y, axis=0)
-    std_precision_y = np.std(precision_interp_y, axis=0)
-
-    # Plot Precision-Recall for Y dataset with mean and std
-    plt.plot(mean_recall, mean_precision_y, label=f'Mean Precision-Recall Y (AUPR = {np.mean(auprs_y):.4f})', color='orange')
-    plt.fill_between(mean_recall, mean_precision_y - std_precision_y, mean_precision_y + std_precision_y, color='orange', alpha=0.2)
-
-    plt.title('Precision-Recall Curves with Std', fontsize=font_size)
+    plt.title('Precision-Recall Curves with Std of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('Recall', fontsize=font_size)
     plt.ylabel('Precision', fontsize=font_size)
-    plt.legend(fontsize=24)
+    plt.legend(fontsize=12)
     plt.grid()
 
 
@@ -93,26 +77,48 @@ model_names = ['0_1_2_3_4', 'non_negative_tucker', 'constrained_parafac', 'tucke
 
 rnd_seeds = ['123', '124', '125', '126', '127']
 
+colors = ['red', 'orange', 'blue', 'green']
+
 # Set font size for the whole plot
 font_size = 28
 plt.rcParams.update({'font.size': font_size})
 
+# plot metrics for X tensor
 plt.figure(figsize=(20, 8))
-
-for model_name in model_names:
+tensor_name = "X"
+for i, model_name in enumerate(model_names):
     test_files_x = []
-    test_files_y = []
     for rnd_seed in rnd_seeds:
-        test_files_x.append(save_dir + model_name + "_test_x_result_" + rnd_seed)
-        test_files_y.append(save_dir + model_name + "_test_x_result_" + rnd_seed)
+        test_files_x.append(save_dir + model_name + "_test_x_result_" + rnd_seed + ".csv")
 
     aucs_x, auprs_x, fpr_list_x, tpr_list_x, precision_list_x, recall_list_x = calculate_metrics(test_files_x)
-    aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y = calculate_metrics(test_files_y)
-    # Plot combined ROC and Precision-Recall curves for x and y datasets
-    plot_combined_metrics_with_std(aucs_x, auprs_x, fpr_list_x, tpr_list_x, precision_list_x, recall_list_x,
-                                   aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y)
+    # Plot combined ROC and Precision-Recall curves for x datasets
+    if model_name == '0_1_2_3_4':
+        model_name = "SI-ADMM"
+    plot_combined_metrics_with_std(aucs_x, auprs_x, fpr_list_x, tpr_list_x, precision_list_x, recall_list_x, colors[i], model_name, tensor_name)
 
 # Adjust layout and save figure
 plt.tight_layout()
-plt.savefig('auc_aupr.pdf', format='pdf')
+plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
+plt.show()
+
+
+# plot metrics on Y tensor
+plt.figure(figsize=(20, 8))
+tensor_name = "Y"
+for i, model_name in enumerate(model_names):
+    test_files_y = []
+    for rnd_seed in rnd_seeds:
+        test_files_y.append(save_dir + model_name + "_test_y_result_" + rnd_seed + ".csv")
+
+    aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y = calculate_metrics(test_files_y)
+
+    # Plot combined ROC and Precision-Recall curves for x datasets
+    if model_name == '0_1_2_3_4':
+        model_name = "SI-ADMM"
+    plot_combined_metrics_with_std(aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y, colors[i], model_name, tensor_name)
+    print(model_name)
+# Adjust layout and save figure
+plt.tight_layout()
+plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
 plt.show()

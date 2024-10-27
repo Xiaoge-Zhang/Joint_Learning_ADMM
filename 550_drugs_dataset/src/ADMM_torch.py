@@ -142,8 +142,8 @@ def solve(x, Y, iteration):
 
         if i % 5 == 0 or i == (iteration - 1):
             # paths for saving the result and loss
-            x_path = full_save_dir + ".pt"
-            loss_path = full_save_dir + ".csv"
+            x_path = full_save_dir + str(rnd_seed) +'.pt'
+            loss_path = full_save_dir + str(rnd_seed) +'.csv'
             # save the result and loss
             torch.save(x, x_path)
             losses_df.to_csv(loss_path, index=False)
@@ -252,9 +252,9 @@ def result_to_csv(real_x, real_y, pred_x, pred_y, x_test_indices, y_test_indices
     df_y = pd.DataFrame(data_y)
 
     # Save the dataframe to a CSV file
-    csv_file_path_x = "{}test_x_result.csv".format(full_save_dir)
+    csv_file_path_x = "{}test_x_result_{}.csv".format(full_save_dir, rnd_seed)
     df_x.to_csv(csv_file_path_x, index=False)
-    csv_file_path_y = "{}test_y_result.csv".format(full_save_dir)
+    csv_file_path_y = "{}test_y_result_{}.csv".format(full_save_dir, rnd_seed)
     df_y.to_csv(csv_file_path_y, index=False)
 
     return df_x, df_y
@@ -273,6 +273,7 @@ if __name__ == '__main__':
     train = False
 
     # basic parameter of input data
+    rnd_seed = 123
     rank = 3
     num_drug = 551
     num_disease = 77
@@ -289,7 +290,6 @@ if __name__ == '__main__':
     save_name = ''
     for index in si:
         save_name += str(index) + '_'
-    save_file_ending = '_{}si'.format(save_name)
 
     # save_dir = 'useful_data/torch_output/'
     save_dir = '../output/'
@@ -299,8 +299,8 @@ if __name__ == '__main__':
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=129, missing_rate=0.2)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=129, missing_rate=0.2)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=rnd_seed)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=rnd_seed)
 
     # load up the side information
     Sa = load_si(base_dir)
@@ -318,7 +318,7 @@ if __name__ == '__main__':
 
     solve(x, Y, iteration=500)
     # else:
-    x = torch.load(full_save_dir + '.pt')
+    x = torch.load(full_save_dir + str(rnd_seed) +'.pt')
     U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
     pred_x = resemble_matrix(U, D, V)
     pred_y = resemble_matrix(U, D, W)

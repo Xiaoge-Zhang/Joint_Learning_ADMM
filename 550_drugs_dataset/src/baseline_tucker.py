@@ -109,7 +109,7 @@ def result_to_csv(real_x, real_y, pred_x, pred_y, x_test_indices, y_test_indices
 
 
 if __name__ == '__main__':
-    rnd_seed = 123
+    rnd_seed = 127
     save_name = 'tucker'
     base_dir = '../data/'
     output_dir = '../output/'
