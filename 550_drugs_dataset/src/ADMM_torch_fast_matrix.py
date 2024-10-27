@@ -10,7 +10,7 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 torch.set_printoptions(sci_mode=False, precision=6, threshold=float('inf'))
 
-def lagrangian_function(x, Y):
+def lagrangian_function(x, Y, U, D, Ci, Ui):
     '''
     F = Y[:rank * num_drug].reshape(num_drug, rank)
     si_F = []
@@ -194,8 +194,8 @@ def losses_test():
 
 def pprint(i, x, Y):
     loss = f(x)
-    # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
-    augmented_function_loss = lagrangian_function(x, Y)
+    U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
+    augmented_function_loss = lagrangian_function(x, Y, U, D, Ci, Ui)
     x_test_loss, y_test_loss = losses_test()
 
     print(
@@ -224,8 +224,6 @@ def solve(x, Y, iteration):
 
         # save the result every 5 iterations (also saves the result the first iteration)
         losses_df = pd.concat([losses_df, pd.DataFrame([new_row])], ignore_index=True)
-        # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
-        # L_val = lagrangian_function(x, Y)
         if i % 5 == 0 or i == (iteration - 1):
             # paths for saving the result and loss
             x_path = full_save_dir + str(rnd_seed) +'.pt'
@@ -356,7 +354,7 @@ if __name__ == '__main__':
         print("Using CPU")
 
     # weather to train or to visualize the result
-    train = False
+    train = True
 
     # basic parameter of input data
     rnd_seed = 123
@@ -367,6 +365,13 @@ if __name__ == '__main__':
     si = [0, 1, 2, 3, 4]
     si_weight = [1, 1, 1, 1, 1]
     num_si = len(si)
+
+    # learning rate
+    lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
+    # penalty parameter
+    rho = torch.tensor(5, dtype=torch.float32).to(device)
+    # number of iterations
+    num_iteration = 1200
 
     # the root directery to save the results
     base_dir = '../data/'
@@ -390,10 +395,7 @@ if __name__ == '__main__':
 
     # load up the side information
     Sa = load_si(base_dir)
-    # learning rate
-    lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
-    # penalty parameter
-    rho = torch.tensor(5, dtype=torch.float32).to(device)
+
 
     if train:
         # initial value of lagragian multiplier
@@ -401,7 +403,7 @@ if __name__ == '__main__':
         # initialize the A, x and b
         A, x, b = generate_A_x_b()
 
-        solve(x, Y, iteration=500)
+        solve(x, Y, iteration=num_iteration)
     else:
         x = torch.load(full_save_dir + str(rnd_seed) +'.pt')
         U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
