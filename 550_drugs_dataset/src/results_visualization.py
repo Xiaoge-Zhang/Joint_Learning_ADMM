@@ -60,6 +60,7 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
     mean_precision = np.mean(precision_interp, axis=0)
     std_precision = np.std(precision_interp, axis=0)
 
+
     # Plot Precision-Recall
     plt.plot(mean_recall, mean_precision, label='AUPR = {} for {}'.format(np.round(np.mean(auprs), 4), model_name), color=color)
     # plt.fill_between(mean_recall, mean_precision - std_precision, mean_precision + std_precision, color=color, alpha=0.2)
@@ -69,7 +70,10 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
     plt.ylabel('Precision', fontsize=font_size)
     plt.legend(fontsize=12)
     plt.grid()
-
+    print(tensor_name)
+    print(model_name)
+    print("mean aucs: {}, std:{}".format(np.mean(aucs), np.std(aucs)))
+    print("mean aupr: {}, std:{}".format(np.mean(auprs), np.std(auprs)))
 
 save_dir = '../output/'
 
@@ -117,7 +121,6 @@ for i, model_name in enumerate(model_names):
     if model_name == '0_1_2_3_4':
         model_name = "SI-ADMM"
     plot_combined_metrics_with_std(aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y, colors[i], model_name, tensor_name)
-    print(model_name)
 # Adjust layout and save figure
 plt.tight_layout()
 plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
