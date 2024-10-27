@@ -60,7 +60,7 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
 
 
     # Randomly select indices of `0` values
-    shuffled_zero_indices = np.random.permutation(len(zero_indices))
+    shuffled_zero_indices = np.default_rng(seed=rnd_seed).permutation(len(zero_indices))
     selected_zero_indices = [zero_indices[i] for i in shuffled_zero_indices[:num_zeros_to_replace]]
     selected_zero_indices = tuple(zip(*selected_zero_indices))
 
@@ -122,8 +122,8 @@ if __name__ == '__main__':
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=rnd_seed, missing_rate=0.1)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=rnd_seed, missing_rate=0.1)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=rnd_seed)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=rnd_seed)
 
     # tensor generation
     tensor_x = tl.tensor(tensor_x)

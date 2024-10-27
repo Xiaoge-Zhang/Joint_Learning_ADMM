@@ -55,9 +55,8 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
     selected_one_indices = [one_indices[i] for i in shuffled_one_indices[:num_ones_to_replace]]
     selected_one_indices = tuple(zip(*selected_one_indices))
 
-
     # Randomly select indices of `0` values
-    shuffled_zero_indices = np.random.permutation(len(zero_indices))
+    shuffled_zero_indices = np.random.default_rng(seed=rnd_seed).permutation(len(zero_indices))
     selected_zero_indices = [zero_indices[i] for i in shuffled_zero_indices[:num_zeros_to_replace]]
     selected_zero_indices = tuple(zip(*selected_zero_indices))
 
