@@ -11,8 +11,21 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 torch.set_printoptions(sci_mode=False, precision=6, threshold=float('inf'))
 
 def lagrangian_function(x, Y):
-    return f(x) + Y @ (A @ x - b) + rho / 2 * ((A @ x - b)**2).sum()
+    '''
+    F = Y[:rank * num_drug].reshape(num_drug, rank)
+    si_F = []
+    for i in range(num_si):
+        start_index = rank * num_drug + i * rank * num_drug
+        si_F.append(Y[start_index: start_index + rank * num_drug].reshape(num_drug, rank))
 
+    result = f(x)
+    result += (torch.trace(F.t() @ (D - U)) + (rho / 2) * torch.norm(D - U, p=2))
+    for i in range(num_si):
+        result += (torch.trace(si_F[i].t() @ (Ci[i] - Ui[i])) + (rho / 2) * torch.norm(Ci[i] - Ui[i], p=2))
+
+    return result
+    '''
+    return f(x) + Y @ (A @ x - b) + rho / 2 * ((A @ x - b)**2).sum()
 
 def f(x):
     U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
@@ -78,25 +91,30 @@ def generate_A_x_b():
     num_constraint = 1 + num_si
 
     # initialize A matrix
-    A = torch.zeros(num_constraint, col_length, requires_grad=False, dtype=torch.float32).to(device)
+    A = torch.zeros(num_constraint * rank * num_drug, col_length, requires_grad=False, dtype=torch.float32).to(device)
     # assign value for the first constraint: U = D
-    A[0, :rank * num_drug] = 1
-    A[0, rank * num_drug : rank * num_drug * 2] = -1
+    U_start_index = 0
+    D_start_index = rank * num_drug
+    for i in range(rank * num_drug):
+        A[i, U_start_index + i] = 1
+        A[i, D_start_index + i] = -1
 
     # si length is number of elements of one matrix in ci pluse one matrix in ui
     si_length = num_drug * rank * 2
 
     # assign value for rest of constraints: C[i] = U[i]
     for i in range(num_si):
-        constraint_index = i + 1
-        start_index = base_length + i * si_length
-        A[constraint_index, start_index: (start_index + int(si_length / 2))] = 1
-        A[constraint_index, (start_index + int(si_length / 2)): (start_index + si_length)] = -1
+        row_starting_index = (1 + i) * num_drug * rank
+        ci_starting_index = base_length + i * 2 * num_drug * rank
+        ui_starting_index = ci_starting_index + num_drug * rank
+        for i in range(rank * num_drug):
+            A[row_starting_index + i, ci_starting_index + i] = 1
+            A[row_starting_index + i, ui_starting_index + i] = -1
 
     # Concatenate all flattened tensors into a single 1D tensor
     x = torch.rand(col_length, dtype=torch.float32, requires_grad=False).to(device)
 
-    b = torch.zeros(num_constraint, requires_grad=False, dtype=torch.float32).to(device)
+    b = torch.zeros(num_constraint * rank * num_drug, requires_grad=False, dtype=torch.float32).to(device)
 
     return A, x, b
 
@@ -111,13 +129,14 @@ def update_partial_x(x, Y, start_index, end_index):
     x_temp[start_index:end_index] = x_partial
 
     # function value
-    UDVW_lagrangian = lagrangian_function(x_temp, Y)
+    # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x_temp)
+    lagrangian_val = lagrangian_function(x_temp, Y)
 
     # calculate gradient
-    grad_x_UDVW = torch.autograd.grad(UDVW_lagrangian, x_partial, create_graph=True)[0]
+    grad_x = torch.autograd.grad(lagrangian_val, x_partial, create_graph=True)[0]
 
     # updated x values for UDVW
-    x_temp_new = x_temp[start_index:end_index] - lr * grad_x_UDVW
+    x_temp_new = x_temp[start_index:end_index] - lr * grad_x
 
     # update x
     x.data[start_index:end_index] = torch.clamp(x_temp_new, min=0)
@@ -175,6 +194,7 @@ def losses_test():
 
 def pprint(i, x, Y):
     loss = f(x)
+    # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
     augmented_function_loss = lagrangian_function(x, Y)
     x_test_loss, y_test_loss = losses_test()
 
@@ -183,9 +203,9 @@ def pprint(i, x, Y):
         f' x_test_loss: {x_test_loss:.2f}, y_test_loss: {y_test_loss:.2f}'
     )
     # print(f'x: {x}')
-    print(f'multiplier: {Y}')
-    print("constraints violation: ")
-    print(A @ x - b)
+    # print(f'multiplier: {Y}')
+    # print("constraints violation: ")
+    # print(A @ x - b)
 
     return loss, augmented_function_loss, x_test_loss, y_test_loss
 
@@ -204,6 +224,8 @@ def solve(x, Y, iteration):
 
         # save the result every 5 iterations (also saves the result the first iteration)
         losses_df = pd.concat([losses_df, pd.DataFrame([new_row])], ignore_index=True)
+        # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
+        # L_val = lagrangian_function(x, Y)
         if i % 5 == 0 or i == (iteration - 1):
             # paths for saving the result and loss
             x_path = full_save_dir + str(rnd_seed) +'.pt'
@@ -213,6 +235,7 @@ def solve(x, Y, iteration):
             losses_df.to_csv(loss_path, index=False)
 
             print(f"Saved at iteration: {i} - Latest tensor X overwritten. loss saved.")
+
 
 
 def load_tensor_x_y(base_dir):
@@ -370,16 +393,15 @@ if __name__ == '__main__':
     # learning rate
     lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
     # penalty parameter
-    rho = torch.tensor(1, dtype=torch.float32).to(device)
+    rho = torch.tensor(5, dtype=torch.float32).to(device)
 
     if train:
         # initial value of lagragian multiplier
-        Y = torch.zeros(1 + num_si, dtype=torch.float32).to(device)
-
+        Y = torch.zeros((1 + num_si) * rank * num_drug, dtype=torch.float32).to(device)
         # initialize the A, x and b
         A, x, b = generate_A_x_b()
 
-        solve(x, Y, iteration=4000)
+        solve(x, Y, iteration=500)
     else:
         x = torch.load(full_save_dir + str(rnd_seed) +'.pt')
         U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
