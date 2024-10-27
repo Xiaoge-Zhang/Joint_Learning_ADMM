@@ -9,9 +9,6 @@ import os
 from sklearn import metrics
 import pandas as pd
 
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-
-
 def resemble_matrix(U, D, V):
     result = np.zeros((U.shape[0], U.shape[0], V.shape[0]), dtype=float)
     num_col = U.shape[1]
@@ -78,7 +75,6 @@ def generate_test_tensor(tensor, test_ratio, rnd_seed, missing_rate=0.0):
 
     # Combine the selected indices for the output
     selected_indices = tuple(np.concatenate((idx1, idx0)) for idx1, idx0 in zip(selected_one_indices, selected_zero_indices))
-
     return modified_tensor, selected_indices
 
 
@@ -104,20 +100,28 @@ def result_to_csv(real_x, real_y, pred_x, pred_y, x_test_indices, y_test_indices
         "prediction": pred_y_values.tolist()
     }
     df_y = pd.DataFrame(data_y)
+    # Save the dataframe to a CSV file
+    csv_file_path_x = output_dir + "{}_test_x_result_{}.csv".format(save_name, rnd_seed)
+    df_x.to_csv(csv_file_path_x, index=False)
+    csv_file_path_y = output_dir + "{}_test_y_result_{}.csv".format(save_name, rnd_seed)
+    df_y.to_csv(csv_file_path_y, index=False)
 
     return df_x, df_y
 
 
 if __name__ == '__main__':
+    rnd_seed = 123
+    save_name = 'tucker'
     base_dir = '../data/'
+    output_dir = '../output/'
 
     np.set_printoptions(precision=2)
     # load up the tensors
     real_tensor_x, real_tensor_y = load_tensor_x_y(base_dir)
 
     # generate the test tensor and save the indicies
-    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
-    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=123, missing_rate=0.1)
+    tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=rnd_seed)
+    tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=rnd_seed)
 
     # tensor generation
     tensor_x = tl.tensor(tensor_x)
