@@ -40,14 +40,14 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
     std_tpr = np.std(tpr_interp, axis=0)
 
     # Plot ROC
-    plt.plot(mean_fpr, mean_tpr, label='AUC = {} for {}'.format(np.round(np.mean(aucs), 4), model_name), color= color)
+    plt.plot(mean_fpr, mean_tpr, label='AUC:{}({})'.format(np.round(np.mean(aucs), 4), model_name), color= color)
     # plt.fill_between(mean_fpr, mean_tpr - std_tpr, mean_tpr + std_tpr, alpha=0.2, color= color)
 
     plt.grid()
     plt.title('ROC Curves with Std of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('False Positive Rate', fontsize=font_size)
     plt.ylabel('True Positive Rate', fontsize=font_size)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=25)
 
     # Plot Precision-Recall curves for both x and y datasets
     plt.subplot(1, 2, 2)
@@ -62,13 +62,13 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
 
 
     # Plot Precision-Recall
-    plt.plot(mean_recall, mean_precision, label='AUPR = {} for {}'.format(np.round(np.mean(auprs), 4), model_name), color=color)
+    plt.plot(mean_recall, mean_precision, label='AUPR:{}({})'.format(np.round(np.mean(auprs), 4), model_name), color=color)
     # plt.fill_between(mean_recall, mean_precision - std_precision, mean_precision + std_precision, color=color, alpha=0.2)
 
     plt.title('Precision-Recall Curves with Std of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('Recall', fontsize=font_size)
     plt.ylabel('Precision', fontsize=font_size)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=25)
     plt.grid()
     print(tensor_name)
     print(model_name)

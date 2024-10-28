@@ -339,10 +339,10 @@ if __name__ == '__main__':
         print("Using CPU")
 
     # weather to train or to visualize the result
-    train = True
+    train = False
 
     # basic parameter of input data
-    rnd_seed = 124
+    rnd_seed = 123
     rank = 3
     num_drug = 551
     num_disease = 77
@@ -352,7 +352,7 @@ if __name__ == '__main__':
     num_si = len(si)
 
     # learning rate
-    lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
+    lr = torch.tensor(0.005, dtype=torch.float32).to(device)
     # penalty parameter
     rho = torch.tensor(5, dtype=torch.float32).to(device)
     # number of iterations
