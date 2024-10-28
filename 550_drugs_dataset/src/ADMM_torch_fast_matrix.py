@@ -10,22 +10,9 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 torch.set_printoptions(sci_mode=False, precision=6, threshold=float('inf'))
 
-def lagrangian_function(x, Y, U, D, Ci, Ui):
-    '''
-    F = Y[:rank * num_drug].reshape(num_drug, rank)
-    si_F = []
-    for i in range(num_si):
-        start_index = rank * num_drug + i * rank * num_drug
-        si_F.append(Y[start_index: start_index + rank * num_drug].reshape(num_drug, rank))
-
-    result = f(x)
-    result += (torch.trace(F.t() @ (D - U)) + (rho / 2) * torch.norm(D - U, p=2))
-    for i in range(num_si):
-        result += (torch.trace(si_F[i].t() @ (Ci[i] - Ui[i])) + (rho / 2) * torch.norm(Ci[i] - Ui[i], p=2))
-
-    return result
-    '''
+def lagrangian_function(x, Y):
     return f(x) + Y @ (A @ x - b) + rho / 2 * ((A @ x - b)**2).sum()
+
 
 def f(x):
     U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
@@ -129,7 +116,6 @@ def update_partial_x(x, Y, start_index, end_index):
     x_temp[start_index:end_index] = x_partial
 
     # function value
-    # U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x_temp)
     lagrangian_val = lagrangian_function(x_temp, Y)
 
     # calculate gradient
@@ -194,8 +180,7 @@ def losses_test():
 
 def pprint(i, x, Y):
     loss = f(x)
-    U, D, _, _, Ci, Ui, _ = convert_x_to_matricies(x)
-    augmented_function_loss = lagrangian_function(x, Y, U, D, Ci, Ui)
+    augmented_function_loss = lagrangian_function(x, Y)
     x_test_loss, y_test_loss = losses_test()
 
     print(
@@ -357,7 +342,7 @@ if __name__ == '__main__':
     train = True
 
     # basic parameter of input data
-    rnd_seed = 123
+    rnd_seed = 124
     rank = 3
     num_drug = 551
     num_disease = 77

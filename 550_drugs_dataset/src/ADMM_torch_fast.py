@@ -78,25 +78,30 @@ def generate_A_x_b():
     num_constraint = 1 + num_si
 
     # initialize A matrix
-    A = torch.zeros(num_constraint, col_length, requires_grad=False, dtype=torch.float32).to(device)
+    A = torch.zeros(num_constraint * rank * num_drug, col_length, requires_grad=False, dtype=torch.float32).to(device)
     # assign value for the first constraint: U = D
-    A[0, :rank * num_drug] = 1
-    A[0, rank * num_drug : rank * num_drug * 2] = -1
+    U_start_index = 0
+    D_start_index = rank * num_drug
+    for i in range(rank * num_drug):
+        A[i, U_start_index + i] = 1
+        A[i, D_start_index + i] = -1
 
     # si length is number of elements of one matrix in ci pluse one matrix in ui
     si_length = num_drug * rank * 2
 
     # assign value for rest of constraints: C[i] = U[i]
     for i in range(num_si):
-        constraint_index = i + 1
-        start_index = base_length + i * si_length
-        A[constraint_index, start_index: (start_index + int(si_length / 2))] = 1
-        A[constraint_index, (start_index + int(si_length / 2)): (start_index + si_length)] = -1
+        row_starting_index = (1 + i) * num_drug * rank
+        ci_starting_index = base_length + i * 2 * num_drug * rank
+        ui_starting_index = ci_starting_index + num_drug * rank
+        for i in range(rank * num_drug):
+            A[row_starting_index + i, ci_starting_index + i] = 1
+            A[row_starting_index + i, ui_starting_index + i] = -1
 
     # Concatenate all flattened tensors into a single 1D tensor
     x = torch.rand(col_length, dtype=torch.float32, requires_grad=False).to(device)
 
-    b = torch.zeros(num_constraint, requires_grad=False, dtype=torch.float32).to(device)
+    b = torch.zeros(num_constraint * rank * num_drug, requires_grad=False, dtype=torch.float32).to(device)
 
     return A, x, b
 
@@ -165,7 +170,7 @@ def pprint(i, x, Y):
         f' x_test_loss: {x_test_loss:.2f}, y_test_loss: {y_test_loss:.2f}'
     )
     # print(f'x: {x}')
-    print(f'multiplier: {Y}')
+    # print(f'multiplier: {Y}')
     print("constraints violation: ")
     print(A @ x - b)
 
@@ -318,6 +323,7 @@ if __name__ == '__main__':
     train = False
 
     # basic parameter of input data
+    training_iter = 1200
     rnd_seed = 123
     rank = 3
     num_drug = 551
@@ -329,6 +335,15 @@ if __name__ == '__main__':
 
     # the root directery to save the results
     base_dir = '../data/'
+
+    # load up the side information
+    Sa = load_si(base_dir)
+    # learning rate
+    lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
+    # penalty parameter
+    rho = torch.tensor(5, dtype=torch.float32).to(device)
+
+
 
     # the directory and file name we are going to save the losses and result
     save_name = ''
@@ -345,21 +360,14 @@ if __name__ == '__main__':
     tensor_x, x_test_indices = generate_test_tensor(tensor=real_tensor_x, test_ratio=0.1, rnd_seed=rnd_seed)
     tensor_y, y_test_indices = generate_test_tensor(tensor=real_tensor_y, test_ratio=0.1, rnd_seed=rnd_seed)
 
-    # load up the side information
-    Sa = load_si(base_dir)
-    # learning rate
-    lr = torch.tensor(0.0005, dtype=torch.float32).to(device)
-    # penalty parameter
-    rho = torch.tensor(1, dtype=torch.float32).to(device)
 
     if train:
         # initial value of lagragian multiplier
-        Y = torch.zeros(1 + num_si, dtype=torch.float32).to(device)
-
+        Y = torch.zeros((1 + num_si) * rank * num_drug, dtype=torch.float32).to(device)
         # initialize the A, x and b
         A, x, b = generate_A_x_b()
 
-        solve(x, Y, iteration=5000)
+        solve(x, Y, iteration=training_iter)
     else:
         x = torch.load(full_save_dir + str(rnd_seed) +'.pt')
         U, D, V, W, Ci, Ui, Qi = convert_x_to_matricies(x)
