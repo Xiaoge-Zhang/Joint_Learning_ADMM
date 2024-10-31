@@ -43,10 +43,9 @@ def convert_x_to_matricies(x):
     return U, D, V, W, Ci, Ui, Qi
 
 
-def side_info_opt_func_val(Sa, Ci, Ui, Qi, U):
-
+def side_info_opt_func_val(Ci, Ui, Qi, U):
     result = 0.0
-    for i in range(len(Sa)):
+    for i in range(num_si):
         temp = si_weight[i] * (torch.norm(Sa[i] - Ci[i] @ Ui[i].t(), p=2) + torch.norm(Ci[i] @ Qi[i] - U, p=2))
         result += temp
 

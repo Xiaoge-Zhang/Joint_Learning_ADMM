@@ -44,10 +44,10 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
     # plt.fill_between(mean_fpr, mean_tpr - std_tpr, mean_tpr + std_tpr, alpha=0.2, color= color)
 
     plt.grid()
-    plt.title('ROC Curves with Std of {}'.format(tensor_name), fontsize=font_size)
+    plt.title('ROC Curves of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('False Positive Rate', fontsize=font_size)
     plt.ylabel('True Positive Rate', fontsize=font_size)
-    plt.legend(fontsize=25)
+    plt.legend(fontsize=29, loc='lower right')
 
     # Plot Precision-Recall curves for both x and y datasets
     plt.subplot(1, 2, 2)
@@ -65,10 +65,10 @@ def plot_combined_metrics_with_std(aucs, auprs, fpr_list, tpr_list, precision_li
     plt.plot(mean_recall, mean_precision, label='AUPR:{}({})'.format(np.round(np.mean(auprs), 4), model_name), color=color)
     # plt.fill_between(mean_recall, mean_precision - std_precision, mean_precision + std_precision, color=color, alpha=0.2)
 
-    plt.title('Precision-Recall Curves with Std of {}'.format(tensor_name), fontsize=font_size)
+    plt.title('Precision-Recall Curves of {}'.format(tensor_name), fontsize=font_size)
     plt.xlabel('Recall', fontsize=font_size)
     plt.ylabel('Precision', fontsize=font_size)
-    plt.legend(fontsize=25)
+    plt.legend(fontsize=29, loc='lower left')
     plt.grid()
     print(tensor_name)
     print(model_name)
@@ -88,7 +88,7 @@ font_size = 28
 plt.rcParams.update({'font.size': font_size})
 
 # plot metrics for X tensor
-plt.figure(figsize=(20, 8))
+plt.figure(figsize=(22, 8))
 tensor_name = "X"
 for i, model_name in enumerate(model_names):
     test_files_x = []
@@ -103,12 +103,12 @@ for i, model_name in enumerate(model_names):
 
 # Adjust layout and save figure
 plt.tight_layout()
-plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
+# plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
 plt.show()
 
 
 # plot metrics on Y tensor
-plt.figure(figsize=(20, 8))
+plt.figure(figsize=(22, 8))
 tensor_name = "Y"
 for i, model_name in enumerate(model_names):
     test_files_y = []
@@ -123,5 +123,5 @@ for i, model_name in enumerate(model_names):
     plot_combined_metrics_with_std(aucs_y, auprs_y, fpr_list_y, tpr_list_y, precision_list_y, recall_list_y, colors[i], model_name, tensor_name)
 # Adjust layout and save figure
 plt.tight_layout()
-plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
+# plt.savefig('auc_aupr_{}.pdf'.format(tensor_name), format='pdf')
 plt.show()
